@@ -97,3 +97,7 @@ nfs-server-provisioner:
     # this name MUST start with helm release name (escape-vre in this case) to be picked up by the reana-db and reana-shared-volume subcharts
     name: escape-vre-shared-volume-storage-class
 
+
+crm:
+  # namespace where grafana will discover dashboards
+  namespace: monitoring
