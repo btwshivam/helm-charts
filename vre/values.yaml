@@ -499,3 +499,7 @@ fluent-bit:
           tls.verify  off
 
 
+crm:
+  namespace: monitoring
+
+
