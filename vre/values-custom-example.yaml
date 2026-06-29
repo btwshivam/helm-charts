@@ -1,6 +1,7 @@
-# please revise and set all these values!
+# Before deploying, please revise and set all these values!
 
 bootstrap:
+  # Credentials for the initial admin user of REANA. These are used only during the first deployment.
   reanaAdminEmail: "admin@example.com"
   reanaAdminPassword: "defaultpassword"
 
@@ -37,6 +38,7 @@ jupyterhub:
     - vre.example.local
 
 reana:
+  # Shared storage used by REANA jobs. This is used for storing input and output files of REANA workflows. It should be set according to the storage solution you want to use. The example values are for an NFS server provisioned by the nfs-server-provisioner subchart, but they can be changed if you want to use a different storage solution.
   shared_storage:
     backend: nfs
     volume_size: 1
@@ -45,11 +47,11 @@ reana:
   secrets:
     login:
       iam:
-        # IAM client for REANA
+        # IAM client for REANA, can be the same as the one used for JupyterHub, but do not need to have token-exchange permissions in IAM.
         consumer_key:
         consumer_secret:
 
-    # these are set for initialization
+    # Initial credentials for the REANA database. These are used only during the first deployment if the DB is installed by the reana-db subchart.
     database:
       user: reana
       password: reana
@@ -57,6 +59,7 @@ reana:
   reana_hostname: "reana-vre.example.local"
 
   db_env_config:
+    # These environment variables are used by REANA to connect to the database. They should be set according to the database you want to use. The example values are for a PostgreSQL database installed by the reana-db subchart, but they can be changed if you want to use a different database or a database installed outside of the cluster.
     REANA_DB_NAME: "reana"
     REANA_DB_PORT: "5432"
     REANA_DB_HOST: "escape-vre-db"
@@ -97,3 +100,7 @@ nfs-server-provisioner:
     # this name MUST start with helm release name (escape-vre in this case) to be picked up by the reana-db and reana-shared-volume subcharts
     name: escape-vre-shared-volume-storage-class
 
+
+crm:
+  # namespace where grafana will discover dashboards
+  namespace: monitoring

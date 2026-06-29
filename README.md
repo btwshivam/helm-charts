@@ -1,7 +1,8 @@
 # VRE Helm charts repository
 
-## Installation
+This readme explains how to deploy VRE. For users, [VRE user guide](userguide.md) may be more interesting.
 
+## Installation
 
 
 The ESCAPE VRE Helm chart is published to GitHub Pages and can be installed from the chart repository.
@@ -167,7 +168,6 @@ just deploy-with-version
 skaffold run
 ```
 
-
 ## Configuration
 
 For complete list of helm chart values, see chart [doc](vre/README.md). These values give a lot of flexibility allow to customize the chart.
@@ -175,6 +175,7 @@ For complete list of helm chart values, see chart [doc](vre/README.md). These va
 Some values almost certainly need to be set in every particular deployment. These values are provided in [vre/values-custom.yaml](vre/values-custom-example.yaml).
 
 ## Troubleshooting
+
 
 
 ### NFS mount error

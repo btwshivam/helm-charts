@@ -41,6 +41,7 @@ The Virtual Research Environment developed at CERN.
 | bootstrap.initImage.tag | string | `"17.5"` |  |
 | bootstrap.reanaAdminEmail | string | `nil` |  |
 | bootstrap.reanaAdminPassword | string | `nil` |  |
+| crm.namespace | string | `"monitoring"` |  |
 | fluent-bit.config.inputs | string | `"[INPUT]\n    Name tail\n    Path /var/log/containers/*.log\n    multiline.parser docker, cri\n    Tag kube.*\n    Mem_Buf_Limit 5MB\n    Buffer_Chunk_Size 1\n    Refresh_Interval 1\n    Skip_Long_Lines On\n"` |  |
 | fluent-bit.config.outputs | string | `"[FILTER]\n    Name grep\n    Match *\n\n[OUTPUT]\n    Name        loki\n    Match       *\n    Host        {{ .Release.Name }}-loki-gateway\n    port        80\n    tls         off\n    tls.verify  off\n"` |  |
 | fluent-bit.config.rbac.create | bool | `true` |  |
