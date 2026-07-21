@@ -4,14 +4,14 @@ bootstrap:
   image:
     repository: alpine/k8s
     tag: "1.30.14"
-    pullPolicy: IfNotPresent    
+    pullPolicy: IfNotPresent
   initImage:
     repository: postgres
     tag: "17.5"
     pullPolicy: IfNotPresent
 
   reanaAdminEmail:
-  reanaAdminPassword: 
+  reanaAdminPassword:
 
 
 jupyterhub:
@@ -31,7 +31,7 @@ jupyterhub:
       #upgrade: true
       type: postgres # passed as s secret (dbconnect string) from the jhub-vre-db secret
       url: # set through secret
-    
+
     config:
       JupyterHub:
         authenticator_class: "generic-oauth"
@@ -44,13 +44,13 @@ jupyterhub:
         oauth_callback_url: https://jhub-vre.obsuks4.unige.ch/hub/oauth_callback
         username_key: preferred_username
         enable_auth_state: true
-        allow_all: true        
+        allow_all: true
         scope:
           - openid
           - profile
           - email
 
-    
+
     extraConfig:
 
       token-exchange: |
@@ -82,7 +82,7 @@ jupyterhub:
                 rucio_token = response.json()['access_token']
 
                 return rucio_token
-                
+
             async def pre_spawn_start(self, user, spawner):
                 auth_state = await user.get_auth_state()
                 #print("AUTH_state")
@@ -90,20 +90,20 @@ jupyterhub:
                 if not auth_state:
                     # user has no auth state
                     return False
-                
+
                 # define token environment variable from auth_state
                 spawner.environment['RUCIO_ACCESS_TOKEN'] = self.exchange_token(auth_state['access_token'])
                 spawner.environment['EOS_ACCESS_TOKEN'] = auth_state['access_token']
-        
+
         # set the above authenticator as the default
         c.JupyterHub.authenticator_class = RucioAuthenticator
 
         # enable authentication state
         c.GenericOAuthenticator.enable_auth_state = True
-      
+
   singleuser:
     cloudMetadata:
-      blockWithIptables: false 
+      blockWithIptables: false
 
 
 
@@ -136,7 +136,7 @@ jupyterhub:
                 echo "oidc_scope = openid profile offline_access" >> /opt/rucio/etc/rucio.cfg;
                 echo "auth_token_file_path = /tmp/rucio_oauth.token" >> /opt/rucio/etc/rucio.cfg;
               fi;
-              
+
     networkPolicy:
       enabled: false
     storage:
@@ -149,7 +149,7 @@ jupyterhub:
         #     claimName: cvmfs-vre-pvc
         # - name: eospilot-eulake # mounts the EOS RSE needed for the Rucio JupiterLab extension
         #   hostPath:
-        #     # path: /var/eos/eulake # This is pointing to /eos/pilot/eulake/escape/data, defined on the configmap/eos-csi-dir-etc-eo  
+        #     # path: /var/eos/eulake # This is pointing to /eos/pilot/eulake/escape/data, defined on the configmap/eos-csi-dir-etc-eo
         #     path: /var/eos/pilot
         # - name: eos-atlas
         #   hostPath:
@@ -162,7 +162,7 @@ jupyterhub:
         # - name: eospilot-eulake # mounts the EOS RSE needed for the Rucio JupiterLab extension
         #   mountPath: /eos/eulake
         #   mountPropagation: HostToContainer
-        #   readOnly: true 
+        #   readOnly: true
         # - name: eos-atlas
         #   mountPath: /eos/atlas
         #   mountPropagation: HostToContainer
@@ -181,7 +181,7 @@ jupyterhub:
         description: "Based on a scipy notebook environment with a python-3.11 kernel, the rucio jupyterlab extension and the reana client installed."
         default: false
 
-    # nodeSelector: 
+    # nodeSelector:
     #   jupyter: singleuser
     # extraTolerations:
     #   - key: jupyter
@@ -236,9 +236,9 @@ jupyterhub:
       traefik.ingress.kubernetes.io/router.tls: "true"
       cert-manager.io/cluster-issuer: letsencrypt
       ingress.kubernetes.io/ssl-redirect: "true"
-      traefik.frontend.entryPoints: http,https        
+      traefik.frontend.entryPoints: http,https
     hosts: []
-               
+
 reana:
   enabled: true
 
@@ -261,11 +261,11 @@ reana:
   secrets:
     login:
       iam:
-        consumer_key: 
-        consumer_secret: 
+        consumer_key:
+        consumer_secret:
 
     database:
-      user: 
+      user:
       password:
 
   components:
@@ -502,4 +502,43 @@ fluent-bit:
 crm:
   namespace: monitoring
 
+npdb:
+  enabled: true
+  platform: kubernetes
 
+  backend:
+    type: django
+
+  hosts:
+    api: npdb-api
+    files: npdb-files
+
+  postgresql:
+    enabled: true
+    fullnameOverride: npdb-postgresql
+    auth:
+      username: cdb
+      database: cdb
+      existingSecret: npdb-postgresql-credentials
+      secretKeys:
+        userPasswordKey: password
+    primary:
+      persistence:
+        enabled: true
+        size: 8Gi
+
+  django:
+    replicas: 1
+    migrations:
+      enabled: true
+
+  storage:
+    payload:
+      create: true
+      storageClass: escape-vre-shared-volume-storage-class
+
+  pgbouncer:
+    enabled: false
+
+  ingress:
+    enabled: false

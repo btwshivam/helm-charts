@@ -1,6 +1,6 @@
 apiVersion: v2
 name: escape-vre
-version: 0.1.0
+version: 0.2.0
 description: The Virtual Research Environment developed at CERN.
 keywords:
   - jupyterhub
@@ -11,6 +11,12 @@ sources:
   - https://github.com/vre-hub/vre
 
 dependencies:
+  - name: npdbchart
+    alias: npdb
+    version: 0.4.0
+    repository: oci://ghcr.io/olivergrabinski/charts
+    condition: npdb.enabled
+
   - name: jupyterhub
     version: 3.3.7
     repository: https://hub.jupyter.org/helm-chart
@@ -18,7 +24,7 @@ dependencies:
 
   - name: reana
     # for the latest alpha version, not working with indigo IAM
-    # version: 0.95.0-alpha.2          
+    # version: 0.95.0-alpha.2
 
     # this is the latest stable version, has an issue with debug mode
     version: 0.9.4
@@ -28,7 +34,7 @@ dependencies:
     condition: nfs-server-provisioner.enabled
     version: 1.8.0
     repository: https://kubernetes-sigs.github.io/nfs-ganesha-server-and-external-provisioner
-  
+
   - name: grafana
     condition: grafana.enabled
     version: 9.2.2
