@@ -515,13 +515,10 @@ npdb:
 
   postgresql:
     enabled: true
-    fullnameOverride: npdb-postgresql
     auth:
       username: cdb
+      password: change-me
       database: cdb
-      existingSecret: npdb-postgresql-credentials
-      secretKeys:
-        userPasswordKey: password
     primary:
       persistence:
         enabled: true
@@ -536,6 +533,7 @@ npdb:
     payload:
       create: true
       storageClass: escape-vre-shared-volume-storage-class
+      size: 2Gi
 
   pgbouncer:
     enabled: false
