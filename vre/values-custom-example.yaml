@@ -105,3 +105,45 @@ crm:
   # namespace where grafana will discover dashboards, set enabled to true to enable the crm dashboard
   # enabled: true
   namespace: monitoring
+
+npdb:
+  enabled: true
+  platform: kubernetes
+
+  backend:
+    type: django
+
+  hosts:
+    # These values provide cluster-internal access through the NGINX Service.
+    # Use distinct DNS names when enabling the ingress for external access.
+    api: escape-vre-npdb-nginx
+    files: escape-vre-npdb-nginx
+
+  postgresql:
+    enabled: true
+    fullnameOverride: npdb-postgresql
+    auth:
+      username: cdb
+      password: replace-with-a-strong-password
+      database: cdb
+    primary:
+      persistence:
+        enabled: true
+        size: 8Gi
+
+  django:
+    replicas: 1
+    migrations:
+      enabled: true
+
+  storage:
+    payload:
+      create: true
+      storageClass: escape-vre-shared-volume-storage-class
+      size: 2Gi
+
+  pgbouncer:
+    enabled: false
+
+  ingress:
+    enabled: false

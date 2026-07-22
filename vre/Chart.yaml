@@ -13,8 +13,8 @@ sources:
 dependencies:
   - name: npdbchart
     alias: npdb
-    version: 0.4.0
-    repository: oci://ghcr.io/olivergrabinski/charts
+    version: 0.4.1
+    repository: oci://ghcr.io/paullaycock/charts
     condition: npdb.enabled
 
   - name: jupyterhub

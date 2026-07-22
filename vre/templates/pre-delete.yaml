@@ -26,7 +26,8 @@ spec:
                 "deployment/${release}-db" \
                 "deployment/${release}-server" \
                 "deployment/${release}-workflow-controller" \
-                "statefulset/${release}-message-broker"
+                "statefulset/${release}-message-broker" \
+                "deployment/${release}-npdb-nginx"
               do
                 if kubectl -n "${namespace}" get "${resource}" >/dev/null 2>&1; then
                   kubectl -n "${namespace}" scale "${resource}" --replicas=0
@@ -35,8 +36,16 @@ spec:
                 fi
               done
 
-              selector="app in (${release}-db,${release}-server,${release}-workflow-controller,${release}-message-broker)"
-              pods=$(kubectl -n "${namespace}" get pods -l "${selector}" -o name)
+              kubectl -n "${namespace}" delete pods \
+                -l "app=jupyterhub,component=singleuser-server,release=${release}" \
+                --ignore-not-found --wait --timeout=300s
+
+              reana_selector="app in (${release}-db,${release}-server,${release}-workflow-controller,${release}-message-broker)"
+              npdb_selector="app.kubernetes.io/name=npdb,app.kubernetes.io/instance=${release},app.kubernetes.io/component=nginx"
+              pods="$(
+                kubectl -n "${namespace}" get pods -l "${reana_selector}" -o name
+                kubectl -n "${namespace}" get pods -l "${npdb_selector}" -o name
+              )"
 
               if [ -n "${pods}" ]; then
                 kubectl -n "${namespace}" wait \
