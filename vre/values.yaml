@@ -499,7 +499,28 @@ fluent-bit:
           tls.verify  off
 
 
+rucioClientSetup:
+  enabled: false
+  configMapName: rucio-client-setup
+
+condaSetup:
+  enabled: false
+  configMapName: conda-setup
+
+mdcDataRclone:
+  enabled: false
+  pvName: mdc-data-rclone-pv
+  pvcName: mdc-data-rclone-pvc
+  capacity: 10Gi
+  storageClassName: rclone
+  volumeHandle: mdc-data-id
+  readOnly: true
+  remoteName: mdc
+  remoteUrl: ""
+  remotePath: /
+  vendor: other
+  reclaimPolicy: Retain
+
 crm:
+  enabled: false
   namespace: monitoring
-
-

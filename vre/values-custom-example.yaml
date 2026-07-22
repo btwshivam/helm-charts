@@ -102,5 +102,6 @@ nfs-server-provisioner:
 
 
 crm:
-  # namespace where grafana will discover dashboards
+  # namespace where grafana will discover dashboards, set enabled to true to enable the crm dashboard
+  # enabled: true
   namespace: monitoring

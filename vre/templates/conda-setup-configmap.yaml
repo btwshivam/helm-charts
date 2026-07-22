@@ -1,0 +1,69 @@
+{{- if .Values.condaSetup.enabled }}
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: {{ .Values.condaSetup.configMapName }}
+  namespace: {{ .Release.Namespace }}
+data:
+  postStart_conda.sh: |
+    #!/bin/bash
+
+    set -eu
+    conda_envs_dir=/home/jovyan/.conda/envs
+    if [ ! -d "$conda_envs_dir" ]; then
+      mkdir -p "$conda_envs_dir"
+    fi
+
+    conda_pkgs_dir=/home/jovyan/.conda/pkgs
+    if [ ! -d "$conda_pkgs_dir" ]; then
+      mkdir -p "$conda_pkgs_dir"
+    fi
+
+    profile_file="$HOME/.bash_profile"
+    touch "$profile_file"
+    sed -i '\|^source /home/jovyan/.bashrc$|d; /^conda activate IGWN$/d' "$profile_file"
+    find "$conda_pkgs_dir" -type f -name '*.partial' -delete
+
+    if [ -d "$conda_envs_dir/IGWN" ]; then
+      echo "Conda environment already exists, skipping creation."
+    else
+      case "$(uname -m)" in
+        aarch64|arm64)
+          conda_platform=linux-aarch64
+          ;;
+        x86_64|amd64)
+          conda_platform=linux-64
+          ;;
+        *)
+          echo "Unsupported architecture: $(uname -m)" >&2
+          exit 1
+          ;;
+      esac
+
+      echo "Creating conda environment..."
+      wget "https://computing.docs.ligo.org/conda/environments/${conda_platform}/igwn.yaml" -O igwn-original.yaml
+      if [ "$conda_platform" = "linux-64" ]; then
+        grep -v '_x86_64-microarch-level=3=3_haswell' igwn-original.yaml > igwn.yaml
+      else
+        cp igwn-original.yaml igwn.yaml
+      fi
+
+      cat > "$HOME/.condarc" <<EOL
+    pkgs_dirs:
+    - /home/jovyan/.conda/pkgs
+    envs_dirs:
+    - /home/jovyan/.conda/envs
+    EOL
+
+      CONDA_DOWNLOAD_THREADS=1 CONDA_EXTRACT_THREADS=1 \
+        conda env create --file igwn.yaml --name IGWN
+      conda init
+
+      jupyter kernelspec remove --force IGWN >/dev/null 2>&1 || true
+      conda run --name IGWN python -m pip install ipykernel
+      conda run --name IGWN python -m ipykernel install --user --name "IGWN" --display-name "IGWN (ETAP VRE)"
+    fi
+
+    echo "source $HOME/.bashrc" >> "$profile_file"
+    echo "conda activate IGWN" >> "$profile_file"
+{{- end }}
