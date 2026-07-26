@@ -18,48 +18,50 @@ data:
 
       rucio_base_url="${RUCIO_BASE_URL%/}"
       rucio_auth_url="${RUCIO_AUTH_URL%/}"
+      rucio_auth_token_file_path="/tmp/rucio_oauth.token"
+{{ if .Values.multiRI.enabled }}
+
+      IFS=',' read -ra servers <<< "$RUCIO_MULTI_HOST_SERVERS"
+      servers[0]="$(printf '%s' "${servers[0]:-}" | sed 's/^[[:space:]]*//;s/[[:space:]]*$//')"
+      servers[1]="$(printf '%s' "${servers[1]:-}" | sed 's/^[[:space:]]*//;s/[[:space:]]*$//')"
+{{ end }}
 
       mkdir -pv /certs /tmp
-      printf '%s' "${RUCIO_ACCESS_TOKEN}" > /tmp/rucio_oauth.token
-      chmod 600 /tmp/rucio_oauth.token
+      printf '%s' "${RUCIO_ACCESS_TOKEN}" > "${rucio_auth_token_file_path}"
+      chmod 600 "${rucio_auth_token_file_path}"
       mkdir -pv /opt/rucio/etc
 
       cat > /opt/rucio/etc/rucio.cfg <<EOL
       [client]
       rucio_host = ${rucio_base_url}
       auth_host = ${rucio_auth_url}
-      # account = $JUPYTERHUB_USER
-      auth_type = oidc
-      oidc_audience = rucio
-      oidc_polling = true
-      # oidc_issuer = escape
-      auth_oidc_refresh_activate = true
-      oidc_issuer = et-indigo-iam
+      auth_type = ${RUCIO_DEFAULT_AUTH_TYPE}
+      oidc_audience = ${RUCIO_OIDC_AUDIENCE}
+      oidc_polling = ${RUCIO_OIDC_POLLING}
+      auth_oidc_refresh_activate = ${RUCIO_OIDC_REFRESH_ACTIVATE}
+      oidc_issuer = ${RUCIO_OIDC_ISSUER}
       request_retries = 3
-      oidc_scope = openid profile offline_access
-      auth_token_file_path = /tmp/rucio_oauth.token
-      multi_host_commands = whoami, ping, list, download
-      multi_host_servers = ET server, CE server
+      oidc_scope = ${RUCIO_OIDC_SCOPE}
+      auth_token_file_path = ${rucio_auth_token_file_path}
+{{ if .Values.multiRI.enabled }}
+      multi_host_commands = ${RUCIO_MULTI_HOST_COMMANDS}
+      multi_host_servers = ${RUCIO_MULTI_HOST_SERVERS}
 
-      [ET server]
+      [${servers[0]}]
       config_file = /opt/rucio/etc/rucio.cfg
-      [CE server]
-      config_file = /opt/rucio/etc/rucio_CE.cfg
+      [${servers[1]}]
+      config_file = /opt/rucio/etc/rucio_2.cfg
     EOL
 
-      cat > /opt/rucio/etc/rucio_CE.cfg <<EOL
+      cat > /opt/rucio/etc/rucio_2.cfg <<EOL
       [client]
       rucio_host = ${rucio_base_url}:8443
       auth_host = ${rucio_auth_url}:8443
-      # account = $JUPYTERHUB_USER
-      auth_type = oidc
-      oidc_issuer = et-indigo-iam
-      # oidc_issuer = escape
-      oidc_audience = rucio
-      oidc_scope = openid profile offline_access
-      oidc_polling = true
-      auth_oidc_refresh_activate = true
-      request_retries = 3
+      auth_type = ${RUCIO_DEFAULT_AUTH_TYPE}
+      auth_token_file_path = ${rucio_auth_token_file_path}
+      #Should be a dummy value to prevent errors
+      oidc_issuer = foo
+{{ end}}
     EOL
     fi
 {{- end }}

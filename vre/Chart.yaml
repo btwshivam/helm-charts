@@ -1,6 +1,6 @@
 apiVersion: v2
 name: escape-vre
-version: 0.2.0
+version: 0.3.0
 description: The Virtual Research Environment developed at CERN.
 keywords:
   - jupyterhub
@@ -11,9 +11,8 @@ sources:
   - https://github.com/vre-hub/vre
 
 dependencies:
-  - name: npdbchart
-    alias: npdb
-    version: 0.4.2
+  - name: npdb
+    version: 0.4.3
     repository: oci://ghcr.io/paullaycock/charts
     condition: npdb.enabled
 

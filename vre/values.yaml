@@ -13,6 +13,8 @@ bootstrap:
   reanaAdminEmail:
   reanaAdminPassword:
 
+multiRI:
+  enabled: false
 
 jupyterhub:
   enabled: true
@@ -112,6 +114,7 @@ jupyterhub:
     # The lifecycle hooks are used to create the Rucio configuration file,
     # and the token file by copying the REFRESH_TOKEN from the environment variable to the token file.
     startTimeout: 1200
+
     lifecycleHooks:
       postStart:
         exec:
@@ -119,55 +122,39 @@ jupyterhub:
             - "sh"
             - "-c"
             - |
-              set -x
-              if [ "${SKIP_POSTSTART_HOOK}" = "true" ]; then
-                echo "hello world";
-              else
-                mkdir -pv /certs /tmp;
-                echo -n $RUCIO_ACCESS_TOKEN > /tmp/rucio_oauth.token;
-                mkdir -pv /opt/rucio/etc;
-                echo "[client]" >> /opt/rucio/etc/rucio.cfg;
-                echo "rucio_host = $RUCIO_BASE_URL" >> /opt/rucio/etc/rucio.cfg;
-                echo "auth_host = $RUCIO_AUTH_URL" >> /opt/rucio/etc/rucio.cfg;
-                echo "account = $JUPYTERHUB_USER" >> /opt/rucio/etc/rucio.cfg;
-                echo "auth_type = oidc" >> /opt/rucio/etc/rucio.cfg;
-                echo "oidc_audience = rucio" >> /opt/rucio/etc/rucio.cfg;
-                echo "oidc_polling = true" >> /opt/rucio/etc/rucio.cfg;
-                echo "oidc_issuer = escape" >> /opt/rucio/etc/rucio.cfg;
-                echo "oidc_scope = openid profile offline_access" >> /opt/rucio/etc/rucio.cfg;
-                echo "auth_token_file_path = /tmp/rucio_oauth.token" >> /opt/rucio/etc/rucio.cfg;
-              fi;
+              bash /hooks/rucio/postStart_rucio.sh > /tmp/postStart_rucio.log 2>&1 || true
+              bash /hooks/conda/postStart_conda.sh > /tmp/postStart_conda.log 2>&1 || true
 
     networkPolicy:
       enabled: false
+
+
     storage:
-      # type: static
-      # static:
-        # pvcName: jhub-vre-singleuser-preprovisioned-manila-pvc # manually added an existing share (refer to jhub-storage.yaml)
-      extraVolumes: []
-        # - name: cvmfs-vre
-        #   persistentVolumeClaim:
-        #     claimName: cvmfs-vre-pvc
-        # - name: eospilot-eulake # mounts the EOS RSE needed for the Rucio JupiterLab extension
-        #   hostPath:
-        #     # path: /var/eos/eulake # This is pointing to /eos/pilot/eulake/escape/data, defined on the configmap/eos-csi-dir-etc-eo
-        #     path: /var/eos/pilot
-        # - name: eos-atlas
-        #   hostPath:
-        #     path: /var/eos/atlas
-      extraVolumeMounts: []
-        # - name: cvmfs-vre
-        #   mountPath: /cvmfs
-        #   # CVMFS automount volumes must be mounted with HostToContainer mount propagation.
-        #   mountPropagation: HostToContainer
-        # - name: eospilot-eulake # mounts the EOS RSE needed for the Rucio JupiterLab extension
-        #   mountPath: /eos/eulake
-        #   mountPropagation: HostToContainer
-        #   readOnly: true
-        # - name: eos-atlas
-        #   mountPath: /eos/atlas
-        #   mountPropagation: HostToContainer
-        #   readOnly: true
+      capacity: 100Gi
+
+      extraVolumes:
+        # Arbitrary key for identity & ordering
+      - name: jupyterhub-shared
+        persistentVolumeClaim:
+          claimName: data-rclone-pvc
+      - name: rucio-client-setup
+        configMap:
+          name: rucio-client-setup
+          defaultMode: 0o755
+      - name: conda-setup
+        configMap:
+          name: conda-setup
+          defaultMode: 0o755
+      extraVolumeMounts:
+        # Arbitrary key for identity & ordering
+      - name: jupyterhub-shared
+        mountPath: /data
+        readOnly: true
+      - name: rucio-client-setup
+        mountPath: /hooks/rucio
+      - name: conda-setup
+        mountPath: /hooks/conda
+
     image:
       name: ghcr.io/vre-hub/vre-singleuser-py311
       tag: sha-281055c
@@ -195,35 +182,27 @@ jupyterhub:
 
     cmd: null
     extraEnv:
-  #     JUPYTERHUB_SINGLEUSER_APP: "notebook.notebookapp.NotebookApp"
-      RUCIO_MODE: "replica"
-      RUCIO_WILDCARD_ENABLED: "1"
-      RUCIO_NAME: "vre-rucio.cern.ch"
-      RUCIO_DEFAULT_INSTANCE: "vre-rucio.cern.ch"
-      RUCIO_BASE_URL: "https://vre-rucio.cern.ch"
-      RUCIO_AUTH_URL: "https://vre-rucio-auth.cern.ch"
-      RUCIO_WEBUI_URL: "https://vre-rucio-ui.cern.ch"
-      RUCIO_DISPLAY_NAME: "RUCIO - CERN VRE"
-      RUCIO_SITE_NAME: "CERN"
+      RUCIO_BASE_URL: "https://et-rucio-server.to.infn.it"
+      RUCIO_AUTH_URL: "https://et-rucio-server.to.infn.it"
       RUCIO_OIDC_AUTH: "env"
       RUCIO_OIDC_ENV_NAME: "RUCIO_ACCESS_TOKEN"
+      RUCIO_OIDC_AUDIENCE: "rucio"
+      RUCIO_OIDC_POLLING: "true"
+      RUCIO_OIDC_REFRESH_ACTIVATE: "true"
+      RUCIO_OIDC_ISSUER: "et-indigo-iam"
+      RUCIO_OIDC_SCOPE: "openid profile offline_access storage.read:/ storage.modify:/"
       RUCIO_DEFAULT_AUTH_TYPE: "oidc"
       RUCIO_OAUTH_ID: "rucio"
-      RUCIO_DESTINATION_RSE: "CERN-EOSPILOT"
-      RUCIO_RSE_MOUNT_PATH: "/eos/eulake"
-      RUCIO_PATH_BEGINS_AT: "5" # because we are need to substitute /eos/pilot/eulake/escape/data with /eos/eulake
-      #RUCIO_CA_CERT: "/certs/rucio_ca.pem"
-      OAUTH2_TOKEN: "FILE:/tmp/eos_oauth.token"
+      RUCIO_DESTINATION_RSE: "LOUVAIN"
+      RUCIO_RSE_MOUNT_PATH: "/data"
+      RUCIO_MODE: "replica"
+      RUCIO_WILDCARD_ENABLED: "1"
+      RUCIO_NAME: "et-rucio-server.to.infn.it"
+      RUCIO_DISPLAY_NAME: "RUCIO - ETAP VRE"
+      RUCIO_SITE_NAME: "ETAP"
+      RUCIO_MULTI_HOST_COMMANDS: "whoami, ping, list, download"
+      RUCIO_MULTI_HOST_SERVERS: "ET server, CE server"
 
-    # extraFiles:
-    #   jupyter_notebook_config.json:
-    #     mountPath: /etc/jupyter/jupyter_notebook_config.json
-    #     data:
-    #       MappingKMappingKernelManager:
-    #         cull_idle_timeout: 3600
-    #         cull_interval: 600
-    #         cull_busy: false
-    #         cull_connected: true
 
   prePuller:
     hook:
@@ -508,15 +487,15 @@ condaSetup:
   enabled: false
   configMapName: conda-setup
 
-mdcDataRclone:
+RcloneMount:
   enabled: false
-  pvName: mdc-data-rclone-pv
-  pvcName: mdc-data-rclone-pvc
+  pvName: data-rclone-pv
+  pvcName: data-rclone-pvc
   capacity: 10Gi
   storageClassName: rclone
-  volumeHandle: mdc-data-id
+  volumeHandle: rclone-data-id
   readOnly: true
-  remoteName: mdc
+  remoteName: rclone
   remoteUrl: ""
   remotePath: /
   vendor: other
