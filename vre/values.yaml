@@ -4,15 +4,17 @@ bootstrap:
   image:
     repository: alpine/k8s
     tag: "1.30.14"
-    pullPolicy: IfNotPresent    
+    pullPolicy: IfNotPresent
   initImage:
     repository: postgres
     tag: "17.5"
     pullPolicy: IfNotPresent
 
   reanaAdminEmail:
-  reanaAdminPassword: 
+  reanaAdminPassword:
 
+multiRI:
+  enabled: false
 
 jupyterhub:
   enabled: true
@@ -31,7 +33,7 @@ jupyterhub:
       #upgrade: true
       type: postgres # passed as s secret (dbconnect string) from the jhub-vre-db secret
       url: # set through secret
-    
+
     config:
       JupyterHub:
         authenticator_class: "generic-oauth"
@@ -44,13 +46,13 @@ jupyterhub:
         oauth_callback_url: https://jhub-vre.obsuks4.unige.ch/hub/oauth_callback
         username_key: preferred_username
         enable_auth_state: true
-        allow_all: true        
+        allow_all: true
         scope:
           - openid
           - profile
           - email
 
-    
+
     extraConfig:
 
       token-exchange: |
@@ -82,7 +84,7 @@ jupyterhub:
                 rucio_token = response.json()['access_token']
 
                 return rucio_token
-                
+
             async def pre_spawn_start(self, user, spawner):
                 auth_state = await user.get_auth_state()
                 #print("AUTH_state")
@@ -90,20 +92,21 @@ jupyterhub:
                 if not auth_state:
                     # user has no auth state
                     return False
-                
+
                 # define token environment variable from auth_state
                 spawner.environment['RUCIO_ACCESS_TOKEN'] = self.exchange_token(auth_state['access_token'])
                 spawner.environment['EOS_ACCESS_TOKEN'] = auth_state['access_token']
-        
+                spawner.environment['NOPAYLOADDB_TOKEN'] = auth_state['access_token']
+
         # set the above authenticator as the default
         c.JupyterHub.authenticator_class = RucioAuthenticator
 
         # enable authentication state
         c.GenericOAuthenticator.enable_auth_state = True
-      
+
   singleuser:
     cloudMetadata:
-      blockWithIptables: false 
+      blockWithIptables: false
 
 
 
@@ -111,6 +114,7 @@ jupyterhub:
     # The lifecycle hooks are used to create the Rucio configuration file,
     # and the token file by copying the REFRESH_TOKEN from the environment variable to the token file.
     startTimeout: 1200
+
     lifecycleHooks:
       postStart:
         exec:
@@ -118,55 +122,39 @@ jupyterhub:
             - "sh"
             - "-c"
             - |
-              set -x
-              if [ "${SKIP_POSTSTART_HOOK}" = "true" ]; then
-                echo "hello world";
-              else
-                mkdir -pv /certs /tmp;
-                echo -n $RUCIO_ACCESS_TOKEN > /tmp/rucio_oauth.token;
-                mkdir -pv /opt/rucio/etc;
-                echo "[client]" >> /opt/rucio/etc/rucio.cfg;
-                echo "rucio_host = $RUCIO_BASE_URL" >> /opt/rucio/etc/rucio.cfg;
-                echo "auth_host = $RUCIO_AUTH_URL" >> /opt/rucio/etc/rucio.cfg;
-                echo "account = $JUPYTERHUB_USER" >> /opt/rucio/etc/rucio.cfg;
-                echo "auth_type = oidc" >> /opt/rucio/etc/rucio.cfg;
-                echo "oidc_audience = rucio" >> /opt/rucio/etc/rucio.cfg;
-                echo "oidc_polling = true" >> /opt/rucio/etc/rucio.cfg;
-                echo "oidc_issuer = escape" >> /opt/rucio/etc/rucio.cfg;
-                echo "oidc_scope = openid profile offline_access" >> /opt/rucio/etc/rucio.cfg;
-                echo "auth_token_file_path = /tmp/rucio_oauth.token" >> /opt/rucio/etc/rucio.cfg;
-              fi;
-              
+              bash /hooks/rucio/postStart_rucio.sh > /tmp/postStart_rucio.log 2>&1 || true
+              bash /hooks/conda/postStart_conda.sh > /tmp/postStart_conda.log 2>&1 || true
+
     networkPolicy:
       enabled: false
+
+
     storage:
-      # type: static
-      # static:
-        # pvcName: jhub-vre-singleuser-preprovisioned-manila-pvc # manually added an existing share (refer to jhub-storage.yaml)
-      extraVolumes: []
-        # - name: cvmfs-vre
-        #   persistentVolumeClaim:
-        #     claimName: cvmfs-vre-pvc
-        # - name: eospilot-eulake # mounts the EOS RSE needed for the Rucio JupiterLab extension
-        #   hostPath:
-        #     # path: /var/eos/eulake # This is pointing to /eos/pilot/eulake/escape/data, defined on the configmap/eos-csi-dir-etc-eo  
-        #     path: /var/eos/pilot
-        # - name: eos-atlas
-        #   hostPath:
-        #     path: /var/eos/atlas
-      extraVolumeMounts: []
-        # - name: cvmfs-vre
-        #   mountPath: /cvmfs
-        #   # CVMFS automount volumes must be mounted with HostToContainer mount propagation.
-        #   mountPropagation: HostToContainer
-        # - name: eospilot-eulake # mounts the EOS RSE needed for the Rucio JupiterLab extension
-        #   mountPath: /eos/eulake
-        #   mountPropagation: HostToContainer
-        #   readOnly: true 
-        # - name: eos-atlas
-        #   mountPath: /eos/atlas
-        #   mountPropagation: HostToContainer
-        #   readOnly: true
+      capacity: 100Gi
+
+      extraVolumes:
+        # Arbitrary key for identity & ordering
+      - name: jupyterhub-shared
+        persistentVolumeClaim:
+          claimName: data-rclone-pvc
+      - name: rucio-client-setup
+        configMap:
+          name: rucio-client-setup
+          defaultMode: 0o755
+      - name: conda-setup
+        configMap:
+          name: conda-setup
+          defaultMode: 0o755
+      extraVolumeMounts:
+        # Arbitrary key for identity & ordering
+      - name: jupyterhub-shared
+        mountPath: /data
+        readOnly: true
+      - name: rucio-client-setup
+        mountPath: /hooks/rucio
+      - name: conda-setup
+        mountPath: /hooks/conda
+
     image:
       name: ghcr.io/vre-hub/vre-singleuser-py311
       tag: sha-281055c
@@ -181,7 +169,7 @@ jupyterhub:
         description: "Based on a scipy notebook environment with a python-3.11 kernel, the rucio jupyterlab extension and the reana client installed."
         default: false
 
-    # nodeSelector: 
+    # nodeSelector:
     #   jupyter: singleuser
     # extraTolerations:
     #   - key: jupyter
@@ -194,35 +182,41 @@ jupyterhub:
 
     cmd: null
     extraEnv:
-  #     JUPYTERHUB_SINGLEUSER_APP: "notebook.notebookapp.NotebookApp"
-      RUCIO_MODE: "replica"
-      RUCIO_WILDCARD_ENABLED: "1"
-      RUCIO_NAME: "vre-rucio.cern.ch"
-      RUCIO_DEFAULT_INSTANCE: "vre-rucio.cern.ch"
-      RUCIO_BASE_URL: "https://vre-rucio.cern.ch"
-      RUCIO_AUTH_URL: "https://vre-rucio-auth.cern.ch"
-      RUCIO_WEBUI_URL: "https://vre-rucio-ui.cern.ch"
-      RUCIO_DISPLAY_NAME: "RUCIO - CERN VRE"
-      RUCIO_SITE_NAME: "CERN"
+      # RUCIO ENV variables, some are used by rucio-client-setup-configmap.yaml, some by jupyter extension
+      RUCIO_BASE_URL: "https://et-rucio-server.to.infn.it"
+      RUCIO_AUTH_URL: "https://et-rucio-server.to.infn.it"
       RUCIO_OIDC_AUTH: "env"
       RUCIO_OIDC_ENV_NAME: "RUCIO_ACCESS_TOKEN"
+      RUCIO_OIDC_AUDIENCE: "rucio"
+      RUCIO_OIDC_POLLING: "true"
+      RUCIO_OIDC_REFRESH_ACTIVATE: "true"
+      RUCIO_OIDC_ISSUER: "et-indigo-iam"
+      RUCIO_OIDC_SCOPE: "openid profile offline_access storage.read:/ storage.modify:/"
       RUCIO_DEFAULT_AUTH_TYPE: "oidc"
       RUCIO_OAUTH_ID: "rucio"
-      RUCIO_DESTINATION_RSE: "CERN-EOSPILOT"
-      RUCIO_RSE_MOUNT_PATH: "/eos/eulake"
-      RUCIO_PATH_BEGINS_AT: "5" # because we are need to substitute /eos/pilot/eulake/escape/data with /eos/eulake
-      #RUCIO_CA_CERT: "/certs/rucio_ca.pem"
-      OAUTH2_TOKEN: "FILE:/tmp/eos_oauth.token"
+      RUCIO_DESTINATION_RSE: "LOUVAIN"
+      RUCIO_RSE_MOUNT_PATH: "/data"
+      RUCIO_MODE: "replica"
+      RUCIO_WILDCARD_ENABLED: "1"
+      RUCIO_NAME: "et-rucio-server.to.infn.it"
+      RUCIO_DISPLAY_NAME: "RUCIO - ETAP VRE"
+      RUCIO_SITE_NAME: "ETAP"
+      RUCIO_MULTI_HOST_COMMANDS: "whoami, ping, list, download"
+      RUCIO_MULTI_HOST_SERVERS: "ET server, CE server"
 
-    # extraFiles:
-    #   jupyter_notebook_config.json:
-    #     mountPath: /etc/jupyter/jupyter_notebook_config.json
-    #     data:
-    #       MappingKMappingKernelManager:
-    #         cull_idle_timeout: 3600
-    #         cull_interval: 600
-    #         cull_busy: false
-    #         cull_connected: true
+      # conda ENV variables, some are used by conda-setup-configmap.yaml
+      CONDA_ENV_NAME: "IGWN"
+      CONDA_ENV_SOURCE_URL: "https://computing.docs.ligo.org/conda/environments/linux-aarch64/igwn.yaml"
+      CONDA_PKGS_EXCLUDE: "_x86_64-microarch-level=3=3_haswell"
+
+      # HSF CDB client ENV variables
+      NOPAYLOADDB_URL: "http://escape-vre-npdb-nginx"
+      NOPAYLOADDB_FILES_URL: "http://escape-vre-npdb-nginx"
+      NOPAYLOADDB_SOURCE_NAME: "Escape VRE HSF CDB" # recommended in case of multiple instances
+      # If there is a second HSF CDB instance to connect to, the following ENV vars are mandatory
+      #NOPAYLOADDB_RI2_URL: ""
+      #NOPAYLOADDB_RI2_FILES_URL: ""
+      #NOPAYLOADDB_RI2_SOURCE_NAME: "Escape VRE HSF CDB RI2" # recommended in case of multiple instances
 
   prePuller:
     hook:
@@ -236,9 +230,9 @@ jupyterhub:
       traefik.ingress.kubernetes.io/router.tls: "true"
       cert-manager.io/cluster-issuer: letsencrypt
       ingress.kubernetes.io/ssl-redirect: "true"
-      traefik.frontend.entryPoints: http,https        
+      traefik.frontend.entryPoints: http,https
     hosts: []
-               
+
 reana:
   enabled: true
 
@@ -261,11 +255,11 @@ reana:
   secrets:
     login:
       iam:
-        consumer_key: 
-        consumer_secret: 
+        consumer_key:
+        consumer_secret:
 
     database:
-      user: 
+      user:
       password:
 
   components:
@@ -499,7 +493,78 @@ fluent-bit:
           tls.verify  off
 
 
+rucioClientSetup:
+  enabled: false
+  configMapName: rucio-client-setup
+
+condaSetup:
+  enabled: false
+  configMapName: conda-setup
+
+RcloneMount:
+  enabled: false
+  pvName: data-rclone-pv
+  pvcName: data-rclone-pvc
+  capacity: 10Gi
+  storageClassName: rclone
+  volumeHandle: rclone-data-id
+  readOnly: true
+  remoteName: rclone
+  remoteUrl: ""
+  remotePath: /
+  vendor: other
+  reclaimPolicy: Retain
+
 crm:
+  enabled: false
   namespace: monitoring
 
+npdb:
+  enabled: true
+  platform: kubernetes
 
+  backend:
+    type: django
+
+  hosts:
+    api: npdb-api
+    files: npdb-files
+
+  postgresql:
+    enabled: true
+    auth:
+      username: cdb
+      password: change-me
+      database: cdb
+    primary:
+      persistence:
+        enabled: true
+        size: 8Gi
+
+  django:
+    replicas: 1
+    migrations:
+      enabled: true
+
+  nginx:
+    podSecurityContext:
+      fsGroup: 101
+
+  files:
+    upload:
+      enabled: true
+    authentication:
+      requireForDownloads: false
+      userinfoUrl: https://iam-et.cloud.cnaf.infn.it/userinfo
+
+  storage:
+    payload:
+      create: true
+      storageClass: escape-vre-shared-volume-storage-class
+      size: 2Gi
+
+  pgbouncer:
+    enabled: false
+
+  ingress:
+    enabled: false

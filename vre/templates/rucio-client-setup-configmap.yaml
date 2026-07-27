@@ -1,0 +1,67 @@
+{{- if .Values.rucioClientSetup.enabled }}
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: {{ .Values.rucioClientSetup.configMapName }}
+  namespace: {{ .Release.Namespace }}
+data:
+  postStart_rucio.sh: |
+    #!/bin/bash
+
+    set -eu
+    if [ "${SKIP_POSTSTART_HOOK:-false}" = "true" ]; then
+      echo "Rucio client setup skipped"
+    else
+      : "${RUCIO_ACCESS_TOKEN:?RUCIO_ACCESS_TOKEN is required}"
+      : "${RUCIO_BASE_URL:?RUCIO_BASE_URL is required}"
+      : "${RUCIO_AUTH_URL:?RUCIO_AUTH_URL is required}"
+
+      rucio_base_url="${RUCIO_BASE_URL%/}"
+      rucio_auth_url="${RUCIO_AUTH_URL%/}"
+      rucio_auth_token_file_path="/tmp/rucio_oauth.token"
+{{ if .Values.multiRI.enabled }}
+
+      IFS=',' read -ra servers <<< "$RUCIO_MULTI_HOST_SERVERS"
+      servers[0]="$(printf '%s' "${servers[0]:-}" | sed 's/^[[:space:]]*//;s/[[:space:]]*$//')"
+      servers[1]="$(printf '%s' "${servers[1]:-}" | sed 's/^[[:space:]]*//;s/[[:space:]]*$//')"
+{{ end }}
+
+      mkdir -pv /certs /tmp
+      printf '%s' "${RUCIO_ACCESS_TOKEN}" > "${rucio_auth_token_file_path}"
+      chmod 600 "${rucio_auth_token_file_path}"
+      mkdir -pv /opt/rucio/etc
+
+      cat > /opt/rucio/etc/rucio.cfg <<EOL
+      [client]
+      rucio_host = ${rucio_base_url}
+      auth_host = ${rucio_auth_url}
+      auth_type = ${RUCIO_DEFAULT_AUTH_TYPE}
+      oidc_audience = ${RUCIO_OIDC_AUDIENCE}
+      oidc_polling = ${RUCIO_OIDC_POLLING}
+      auth_oidc_refresh_activate = ${RUCIO_OIDC_REFRESH_ACTIVATE}
+      oidc_issuer = ${RUCIO_OIDC_ISSUER}
+      request_retries = 3
+      oidc_scope = ${RUCIO_OIDC_SCOPE}
+      auth_token_file_path = ${rucio_auth_token_file_path}
+{{ if .Values.multiRI.enabled }}
+      multi_host_commands = ${RUCIO_MULTI_HOST_COMMANDS}
+      multi_host_servers = ${RUCIO_MULTI_HOST_SERVERS}
+
+      [${servers[0]}]
+      config_file = /opt/rucio/etc/rucio.cfg
+      [${servers[1]}]
+      config_file = /opt/rucio/etc/rucio_2.cfg
+    EOL
+
+      cat > /opt/rucio/etc/rucio_2.cfg <<EOL
+      [client]
+      rucio_host = ${rucio_base_url}:8443
+      auth_host = ${rucio_auth_url}:8443
+      auth_type = ${RUCIO_DEFAULT_AUTH_TYPE}
+      auth_token_file_path = ${rucio_auth_token_file_path}
+      #Should be a dummy value to prevent errors
+      oidc_issuer = foo
+{{ end}}
+    EOL
+    fi
+{{- end }}
