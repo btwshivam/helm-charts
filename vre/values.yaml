@@ -209,6 +209,15 @@ jupyterhub:
       CONDA_ENV_SOURCE_URL: "https://computing.docs.ligo.org/conda/environments/linux-aarch64/igwn.yaml"
       CONDA_PKGS_EXCLUDE: "_x86_64-microarch-level=3=3_haswell"
 
+      # HSF CDB client ENV variables
+      NOPAYLOADDB_URL: "http://escape-vre-npdb-nginx"
+      NOPAYLOADDB_FILES_URL: "http://escape-vre-npdb-nginx"
+      NOPAYLOADDB_SOURCE_NAME: "Escape VRE HSF CDB" # recommended in case of multiple instances
+      # If there is a second HSF CDB instance to connect to, the following ENV vars are mandatory
+      #NOPAYLOADDB_RI2_URL: ""
+      #NOPAYLOADDB_RI2_FILES_URL: ""
+      #NOPAYLOADDB_RI2_SOURCE_NAME: "Escape VRE HSF CDB RI2" # recommended in case of multiple instances
+
   prePuller:
     hook:
       enabled: true
