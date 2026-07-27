@@ -21,31 +21,19 @@ data:
 
     profile_file="$HOME/.bash_profile"
     touch "$profile_file"
-    sed -i '\|^source /home/jovyan/.bashrc$|d; /^conda activate IGWN$/d' "$profile_file"
+    sed -i '\|^source /home/jovyan/.bashrc$|d; /^conda activate ${CONDA_ENV_NAME}$|d' "$profile_file"
     find "$conda_pkgs_dir" -type f -name '*.partial' -delete
 
-    if [ -d "$conda_envs_dir/IGWN" ]; then
+    if [ -d "$conda_envs_dir/${CONDA_ENV_NAME}" ]; then
       echo "Conda environment already exists, skipping creation."
     else
-      case "$(uname -m)" in
-        aarch64|arm64)
-          conda_platform=linux-aarch64
-          ;;
-        x86_64|amd64)
-          conda_platform=linux-64
-          ;;
-        *)
-          echo "Unsupported architecture: $(uname -m)" >&2
-          exit 1
-          ;;
-      esac
 
       echo "Creating conda environment..."
-      wget "https://computing.docs.ligo.org/conda/environments/${conda_platform}/igwn.yaml" -O igwn-original.yaml
-      if [ "$conda_platform" = "linux-64" ]; then
-        grep -v '_x86_64-microarch-level=3=3_haswell' igwn-original.yaml > igwn.yaml
+      wget "${CONDA_ENV_SOURCE_URL}" -O conda_env_original.yaml
+      if [ -n "${CONDA_PKGS_EXCLUDE}" ]; then
+        grep -vE "${CONDA_PKGS_EXCLUDE}" conda_env_original.yaml > conda_env.yaml
       else
-        cp igwn-original.yaml igwn.yaml
+        cp conda_env_original.yaml conda_env.yaml
       fi
 
       cat > "$HOME/.condarc" <<EOL
@@ -56,14 +44,14 @@ data:
     EOL
 
       CONDA_DOWNLOAD_THREADS=1 CONDA_EXTRACT_THREADS=1 \
-        conda env create --file igwn.yaml --name IGWN
+        conda env create --file conda_env.yaml --name "${CONDA_ENV_NAME}" --quiet
       conda init
 
-      jupyter kernelspec remove --force IGWN >/dev/null 2>&1 || true
-      conda run --name IGWN python -m pip install ipykernel
-      conda run --name IGWN python -m ipykernel install --user --name "IGWN" --display-name "IGWN (ETAP VRE)"
+      jupyter kernelspec remove --force "${CONDA_ENV_NAME}" >/dev/null 2>&1 || true
+      conda run --name "${CONDA_ENV_NAME}" python -m pip install ipykernel
+      conda run --name "${CONDA_ENV_NAME}" python -m ipykernel install --user --name "${CONDA_ENV_NAME}" --display-name "${CONDA_ENV_NAME} (ETAP VRE)"
     fi
 
     echo "source $HOME/.bashrc" >> "$profile_file"
-    echo "conda activate IGWN" >> "$profile_file"
+    echo "conda activate ${CONDA_ENV_NAME}" >> "$profile_file"
 {{- end }}

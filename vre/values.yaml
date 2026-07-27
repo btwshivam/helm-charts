@@ -182,6 +182,7 @@ jupyterhub:
 
     cmd: null
     extraEnv:
+      # RUCIO ENV variables, some are used by rucio-client-setup-configmap.yaml, some by jupyter extension
       RUCIO_BASE_URL: "https://et-rucio-server.to.infn.it"
       RUCIO_AUTH_URL: "https://et-rucio-server.to.infn.it"
       RUCIO_OIDC_AUTH: "env"
@@ -203,6 +204,10 @@ jupyterhub:
       RUCIO_MULTI_HOST_COMMANDS: "whoami, ping, list, download"
       RUCIO_MULTI_HOST_SERVERS: "ET server, CE server"
 
+      # conda ENV variables, some are used by conda-setup-configmap.yaml
+      CONDA_ENV_NAME: "IGWN"
+      CONDA_ENV_SOURCE_URL: "https://computing.docs.ligo.org/conda/environments/linux-aarch64/igwn.yaml"
+      CONDA_PKGS_EXCLUDE: "_x86_64-microarch-level=3=3_haswell"
 
   prePuller:
     hook:
