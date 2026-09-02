@@ -14,11 +14,12 @@ bootstrap:
   reanaAdminPassword: 
 
   # runAsUser has to be set: neither image declares a non-root USER.
+  # Above 10000 to stay clear of host UIDs.
   podSecurityContext:
     runAsNonRoot: true
-    runAsUser: 1000
-    runAsGroup: 1000
-    fsGroup: 1000
+    runAsUser: 10001
+    runAsGroup: 10001
+    fsGroup: 10001
     seccompProfile:
       type: RuntimeDefault
 
