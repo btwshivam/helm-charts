@@ -8,10 +8,18 @@ spec:
     spec:
       restartPolicy: Never
       serviceAccountName: {{ include "escape-vre.fullname" . }}-bootstrap-sa
+      {{- with .Values.bootstrap.podSecurityContext }}
+      securityContext:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
       initContainers:
       - name: wait-for-db
         image: "{{ .Values.bootstrap.initImage.repository }}:{{ .Values.bootstrap.initImage.tag }}"
         imagePullPolicy: {{ .Values.bootstrap.initImage.pullPolicy }}
+        {{- with .Values.bootstrap.securityContext }}
+        securityContext:
+          {{- toYaml . | nindent 10 }}
+        {{- end }}
         command: ["/bin/sh", "-c"]
         env:
         - name: PGUSER
@@ -41,6 +49,10 @@ spec:
       - name: bootstrap
         image: "{{ .Values.bootstrap.image.repository }}:{{ .Values.bootstrap.image.tag }}"
         imagePullPolicy: {{ .Values.bootstrap.imagePullPolicy }}  
+        {{- with .Values.bootstrap.securityContext }}
+        securityContext:
+          {{- toYaml . | nindent 10 }}
+        {{- end }}
         command: ["/bin/sh", "-c"]
         args:
         - |
