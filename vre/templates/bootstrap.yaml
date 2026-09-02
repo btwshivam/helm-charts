@@ -48,7 +48,7 @@ spec:
       containers:
       - name: bootstrap
         image: "{{ .Values.bootstrap.image.repository }}:{{ .Values.bootstrap.image.tag }}"
-        imagePullPolicy: {{ .Values.bootstrap.imagePullPolicy }}  
+        imagePullPolicy: {{ .Values.bootstrap.image.pullPolicy }}
         {{- with .Values.bootstrap.securityContext }}
         securityContext:
           {{- toYaml . | nindent 10 }}
