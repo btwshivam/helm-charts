@@ -42,5 +42,17 @@ jobs:
           sudo mv kubeconform /usr/local/bin/
           kubeconform -v
 
+      - name: Cache trivy checks bundle
+        uses: actions/cache@v4
+        with:
+          path: ~/.cache/trivy/policy
+          key: trivy-checks-1583562f
+
+      - name: Install trivy
+        run: |
+          curl -fsSL --retry 3 --retry-all-errors https://github.com/aquasecurity/trivy/releases/download/v0.74.0/trivy_0.74.0_Linux-64bit.tar.gz | tar xz trivy
+          sudo mv trivy /usr/local/bin/
+          trivy --version
+
       - name: Run pre-commit
         uses: pre-commit/action@v3.0.1

@@ -32,3 +32,12 @@ repos:
 
       language: system
       pass_filenames: false
+
+  - repo: local
+    hooks:
+    - id: trivy-config
+      name: Scan the chart for misconfiguration
+      files: ^(vre/(templates/.*\.yaml|values\.yaml|values\.schema\.json|linter_values\.yaml|Chart\.yaml|\.helmignore)|scripts/scan\.sh|\.pre-commit-config\.yaml|\.trivyignore)$
+      entry: ./scripts/scan.sh
+      language: system
+      pass_filenames: false
