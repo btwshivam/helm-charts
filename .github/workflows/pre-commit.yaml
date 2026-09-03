@@ -36,13 +36,6 @@ jobs:
         if: steps.charts.outputs.cache-hit != 'true'
         run: helm dependency update ./vre
 
-      - name: Cache kubeconform schemas
-        uses: actions/cache@v4
-        with:
-          path: ~/.cache/kubeconform
-          key: kubeconform-schemas-${{ hashFiles('.kube-version') }}
-          restore-keys: kubeconform-schemas-
-
       - name: Install kubeconform
         run: |
           set -o pipefail

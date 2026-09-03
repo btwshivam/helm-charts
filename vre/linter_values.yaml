@@ -1,4 +1,3 @@
-# fake values, just enough to render the chart while linting
 bootstrap:
   reanaAdminEmail: lint@example.invalid
   reanaAdminPassword: lint-only-not-a-real-password
@@ -17,8 +16,7 @@ reana:
         consumer_key: lint-only
         consumer_secret: lint-only
 
-# rendered by the lint hooks so their values get exercised; the chart ships
-# them disabled
+# the chart ships these disabled, render them so their values get linted
 grafana:
   enabled: true
 prometheus:
