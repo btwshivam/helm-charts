@@ -24,10 +24,10 @@ repos:
     hooks:
     - id: kubeconform
       name: Validate Helm templates with kubeconform
-      files: &render_inputs ^(vre/(templates/.*\.(ya?ml|tpl)|values\.yaml|values\.schema\.json|linter_values\.yaml|Chart\.yaml|\.helmignore)|scripts/scan\.sh|\.pre-commit-config\.yaml|\.trivyignore)$
+      files: &render_inputs ^(vre/(templates/.*\.(ya?ml|tpl)|values\.yaml|values\.schema\.json|linter_values\.yaml|Chart\.yaml|\.helmignore)|scripts/scan\.sh|\.kube-version|\.pre-commit-config\.yaml|\.trivyignore)$
       entry: bash -euo pipefail -c '
-        cache="${HOME:?}/.cache/kubeconform"; mkdir -p "$cache";
-        helm template vre ./vre -f vre/linter_values.yaml --kube-version 1.31.0 | kubeconform -strict -ignore-missing-schemas -kubernetes-version 1.31.0 -cache "$cache" -summary -output pretty - '
+        kube=$(cat .kube-version); cache="${HOME:?}/.cache/kubeconform"; mkdir -p "$cache";
+        helm template vre ./vre -f vre/linter_values.yaml --kube-version "$kube" | kubeconform -strict -ignore-missing-schemas -kubernetes-version "$kube" -cache "$cache" -summary -output pretty - '
       language: system
       pass_filenames: false
 

@@ -7,6 +7,8 @@
 set -euo pipefail
 cd "$(dirname "$0")/.."
 
+kube=$(cat .kube-version)
+
 # pinned, the bundle is re-pulled every 24h and a new rule upstream
 # should not turn someone else's PR red
 bundle=mirror.gcr.io/aquasec/trivy-checks@sha256:1583562f8b90ed2a071b99f0e5ffff6b57e4ceb6ca3e4796577b4e6a339eb74c
@@ -17,7 +19,7 @@ trap 'rm -f "$log"' EXIT
 # kept separate so a trivy failure stops here, not in the parser
 report=$(trivy config --format json \
 	--checks-bundle-repository "$bundle" \
-	--helm-values vre/linter_values.yaml --helm-kube-version 1.31.0 vre 2>"$log")
+	--helm-values vre/linter_values.yaml --helm-kube-version "$kube" vre 2>"$log")
 
 # trivy quietly falls back to the checks baked into the binary when it cannot
 # pull the bundle, which would silently un-pin the ruleset

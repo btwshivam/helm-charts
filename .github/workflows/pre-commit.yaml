@@ -40,8 +40,8 @@ jobs:
         uses: actions/cache@v4
         with:
           path: ~/.cache/kubeconform
-          key: kubeconform-schemas-1.31.0-${{ hashFiles('vre/Chart.yaml', 'vre/values.yaml', 'vre/linter_values.yaml', 'vre/templates/**') }}
-          restore-keys: kubeconform-schemas-1.31.0-
+          key: kubeconform-schemas-${{ hashFiles('.kube-version') }}
+          restore-keys: kubeconform-schemas-
 
       - name: Install kubeconform
         run: |
