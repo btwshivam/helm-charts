@@ -36,17 +36,18 @@ jobs:
         if: steps.charts.outputs.cache-hit != 'true'
         run: helm dependency update ./vre
 
+      - name: Cache kubeconform schemas
+        uses: actions/cache@v4
+        with:
+          path: ~/.cache/kubeconform
+          key: kubeconform-schemas-1.31.0-${{ hashFiles('vre/Chart.yaml', 'vre/values.yaml', 'vre/linter_values.yaml', 'vre/templates/**') }}
+          restore-keys: kubeconform-schemas-1.31.0-
+
       - name: Install kubeconform
         run: |
           curl -fsSL --retry 3 --retry-all-errors https://github.com/yannh/kubeconform/releases/download/v0.6.7/kubeconform-linux-amd64.tar.gz | tar xz kubeconform
           sudo mv kubeconform /usr/local/bin/
           kubeconform -v
-
-      - name: Cache trivy checks bundle
-        uses: actions/cache@v4
-        with:
-          path: ~/.cache/trivy/policy
-          key: trivy-checks-1583562f
 
       - name: Install trivy
         run: |
