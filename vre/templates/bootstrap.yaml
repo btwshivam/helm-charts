@@ -64,13 +64,13 @@ spec:
         command: ["/bin/sh", "-c"]
         args:
         - |
-          set -ex
+          set -e
           echo "Bootstrapping REANA..."
           
           kubernetes_namespace={{ .Release.Namespace }}
           instance_name={{ include "escape-vre.fullname" . }}
-          admin_email={{ .Values.bootstrap.reanaAdminEmail | default "admin@example.com" }}
-          admin_password={{ .Values.bootstrap.reanaAdminPassword }}
+          admin_email={{ .Values.bootstrap.reanaAdminEmail | default "admin@example.com" | quote }}
+          admin_password={{ .Values.bootstrap.reanaAdminPassword | quote }}
 
           
           kubectl exec -it deployment/${instance_name}-server  -- ./scripts/create-database.sh || echo "Database already exists, skipping creation."
