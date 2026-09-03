@@ -11,10 +11,21 @@ cd "$(dirname "$0")/.."
 # should not turn someone else's PR red
 bundle=mirror.gcr.io/aquasec/trivy-checks@sha256:1583562f8b90ed2a071b99f0e5ffff6b57e4ceb6ca3e4796577b4e6a339eb74c
 
+log=$(mktemp)
+trap 'rm -f "$log"' EXIT
+
 # kept separate so a trivy failure stops here, not in the parser
-report=$(trivy config --format json --quiet \
+report=$(trivy config --format json \
 	--checks-bundle-repository "$bundle" \
-	--helm-values vre/linter_values.yaml --helm-kube-version 1.31.0 vre)
+	--helm-values vre/linter_values.yaml --helm-kube-version 1.31.0 vre 2>"$log")
+
+# trivy quietly falls back to the checks baked into the binary when it cannot
+# pull the bundle, which would silently un-pin the ruleset
+if grep -q "Falling back to embedded checks" "$log"; then
+	echo "scan.sh: could not fetch the pinned checks bundle" >&2
+	cat "$log" >&2
+	exit 1
+fi
 
 printf '%s' "$report" | python3 -c '
 import json, sys
@@ -30,9 +41,7 @@ if not targets:
 rows = []
 for result in targets:
     target = result["Target"]
-    for finding in result.get("Misconfigurations", []):
-        if finding.get("Status") != "FAIL":
-            continue
+    for finding in result.get("Misconfigurations") or []:
         # a few checks report no line, so keep the key a single type
         line = finding.get("CauseMetadata", {}).get("StartLine", 0)
         rows.append((finding["Severity"], target, line, finding["ID"], finding["Title"]))
