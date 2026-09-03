@@ -24,7 +24,8 @@ results = [r for r in json.load(sys.stdin).get("Results") or []
 if not results:
     sys.exit("scan.sh: trivy scanned no templates, is the chart rendering?")
 
-found = ["\t".join((r["Target"], m["Severity"], m["ID"], m["Title"]))
+found = [r["Target"] + ":" + str(m.get("CauseMetadata", {}).get("StartLine", 0))
+         + "\t" + m["Severity"] + "\t" + m["ID"] + "\t" + m["Title"]
          for r in results for m in r.get("Misconfigurations") or []]
 
 print("\n".join(found))
