@@ -1,0 +1,5 @@
+# fixture for the lint hooks, dummy values only, never real credentials
+linter_values.yaml
+
+# operator's real credentials, gitignored and never part of the chart
+values-custom.yaml
