@@ -13,8 +13,7 @@ bootstrap:
   reanaAdminEmail:
   reanaAdminPassword: 
 
-  # runAsUser has to be set: neither image declares a non-root USER.
-  # Above 10000 to stay clear of host UIDs.
+  # neither image declares a non-root USER, so runAsUser has to be set
   podSecurityContext:
     runAsNonRoot: true
     runAsUser: 10001
@@ -24,6 +23,7 @@ bootstrap:
       type: RuntimeDefault
 
   securityContext:
+    runAsNonRoot: true
     allowPrivilegeEscalation: false
     readOnlyRootFilesystem: true
     capabilities:
