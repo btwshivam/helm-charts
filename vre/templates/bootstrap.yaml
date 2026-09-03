@@ -20,6 +20,10 @@ spec:
         securityContext:
           {{- toYaml . | nindent 10 }}
         {{- end }}
+        {{- with .Values.bootstrap.resources }}
+        resources:
+          {{- toYaml . | nindent 10 }}
+        {{- end }}
         command: ["/bin/sh", "-c"]
         env:
         - name: PGUSER
@@ -51,6 +55,10 @@ spec:
         imagePullPolicy: {{ .Values.bootstrap.image.pullPolicy }}
         {{- with .Values.bootstrap.securityContext }}
         securityContext:
+          {{- toYaml . | nindent 10 }}
+        {{- end }}
+        {{- with .Values.bootstrap.resources }}
+        resources:
           {{- toYaml . | nindent 10 }}
         {{- end }}
         command: ["/bin/sh", "-c"]
