@@ -24,6 +24,18 @@ jobs:
         with:
           version: 'latest'
 
+      # vre/charts is gitignored, so there is nothing to render without this
+      - name: Cache chart dependencies
+        id: charts
+        uses: actions/cache@v4
+        with:
+          path: vre/charts
+          key: chart-deps-${{ hashFiles('vre/Chart.yaml') }}
+
+      - name: Fetch chart dependencies
+        if: steps.charts.outputs.cache-hit != 'true'
+        run: helm dependency update ./vre
+
       - name: Install kubeconform
         run: |
           curl -L https://github.com/yannh/kubeconform/releases/latest/download/kubeconform-linux-amd64.tar.gz | tar xz
