@@ -1,4 +1,4 @@
-# {{ include "escape-vre.fullname" . }}-bootstrap-sa sa allowed to do all operations. not amazon specific
+# {{ include "escape-vre.fullname" . }}-bootstrap-sa
 
 apiVersion: v1
 kind: ServiceAccount
@@ -10,10 +10,24 @@ apiVersion: rbac.authorization.k8s.io/v1
 kind: Role
 metadata:
   name: {{ include "escape-vre.fullname" . }}-bootstrap-role
+# what the Job's kubectl calls need, nothing more
 rules:
-- apiGroups: ["*"]
-  resources: ["*"]
-  verbs: ["*"]
+- apiGroups: ["apps"]
+  resources: ["deployments"]
+  verbs: ["get"]
+- apiGroups: [""]
+  resources: ["pods"]
+  verbs: ["get", "list"]
+- apiGroups: [""]
+  resources: ["pods/exec"]
+  verbs: ["create"]
+- apiGroups: [""]
+  resources: ["secrets"]
+  verbs: ["create"]
+- apiGroups: [""]
+  resources: ["secrets"]
+  resourceNames: ["{{ include "escape-vre.fullname" . }}-admin-access-token"]
+  verbs: ["get"]
 ---
 # {{ include "escape-vre.fullname" . }}-bootstrap-role-binding
 apiVersion: rbac.authorization.k8s.io/v1
