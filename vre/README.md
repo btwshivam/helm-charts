@@ -46,9 +46,14 @@ The Virtual Research Environment developed at CERN.
 | bootstrap.podSecurityContext.seccompProfile.type | string | `"RuntimeDefault"` |  |
 | bootstrap.reanaAdminEmail | string | `nil` |  |
 | bootstrap.reanaAdminPassword | string | `nil` |  |
+| bootstrap.resources.limits.cpu | string | `"500m"` |  |
+| bootstrap.resources.limits.memory | string | `"256Mi"` |  |
+| bootstrap.resources.requests.cpu | string | `"50m"` |  |
+| bootstrap.resources.requests.memory | string | `"64Mi"` |  |
 | bootstrap.securityContext.allowPrivilegeEscalation | bool | `false` |  |
 | bootstrap.securityContext.capabilities.drop[0] | string | `"ALL"` |  |
 | bootstrap.securityContext.readOnlyRootFilesystem | bool | `true` |  |
+| bootstrap.securityContext.runAsNonRoot | bool | `true` |  |
 | crm.namespace | string | `"monitoring"` |  |
 | fluent-bit.config.inputs | string | `"[INPUT]\n    Name tail\n    Path /var/log/containers/*.log\n    multiline.parser docker, cri\n    Tag kube.*\n    Mem_Buf_Limit 5MB\n    Buffer_Chunk_Size 1\n    Refresh_Interval 1\n    Skip_Long_Lines On\n"` |  |
 | fluent-bit.config.outputs | string | `"[FILTER]\n    Name grep\n    Match *\n\n[OUTPUT]\n    Name        loki\n    Match       *\n    Host        {{ .Release.Name }}-loki-gateway\n    port        80\n    tls         off\n    tls.verify  off\n"` |  |
