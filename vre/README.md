@@ -22,7 +22,7 @@ The Virtual Research Environment developed at CERN.
 |------------|------|---------|
 | https://fluent.github.io/helm-charts | fluent-bit | 0.58.1 |
 | https://grafana.github.io/helm-charts | grafana | 10.5.15 |
-| https://grafana.github.io/helm-charts | loki | 7.3.0 |
+| https://grafana.github.io/helm-charts | loki | 6.55.0 |
 | https://hub.jupyter.org/helm-chart | jupyterhub | 4.4.2 |
 | https://kubernetes-sigs.github.io/nfs-ganesha-server-and-external-provisioner | nfs-server-provisioner | 1.8.0 |
 | https://prometheus-community.github.io/helm-charts | prometheus | 29.27.2 |
