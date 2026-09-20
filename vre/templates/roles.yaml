@@ -14,21 +14,26 @@ metadata:
 # what the Job's kubectl calls need
 rules:
 - apiGroups: ["apps"]
-  resources: ["deployments"]
+  resources: ["deployments", "statefulsets"]
   verbs: ["get"]
+# kubectl scale patches the scale subresource, it does not update it
+- apiGroups: ["apps"]
+  resources: ["deployments/scale", "statefulsets/scale"]
+  verbs: ["patch"]
 - apiGroups: [""]
   resources: ["pods"]
-  verbs: ["list", "watch"]
+  verbs: ["get", "list", "watch", "delete"]
 - apiGroups: [""]
   resources: ["pods/exec"]
   verbs: ["create"]
 - apiGroups: [""]
   resources: ["secrets"]
   verbs: ["create"]
+# kubectl apply patches the secret when it already exists, e.g. on a reinstall
 - apiGroups: [""]
   resources: ["secrets"]
   resourceNames: ["{{ include "escape-vre.fullname" . }}-admin-access-token"]
-  verbs: ["get"]
+  verbs: ["get", "patch"]
 ---
 # {{ include "escape-vre.fullname" . }}-bootstrap-role-binding
 apiVersion: rbac.authorization.k8s.io/v1
