@@ -23,6 +23,12 @@ reana:
       iam:
         consumer_key: lint-only
         consumer_secret: lint-only
+    database:
+      password: lint-only-not-a-real-password
+    message_broker:
+      password: lint-only-not-a-real-password
+    reana:
+      REANA_SECRET_KEY: lint-only-not-a-real-key
   reana_hostname: reana.lint.invalid
 # the chart ships these disabled, render them so their values get linted
 grafana:
