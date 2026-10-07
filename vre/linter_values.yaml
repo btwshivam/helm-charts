@@ -23,8 +23,6 @@ reana:
       iam:
         consumer_key: lint-only
         consumer_secret: lint-only
-    database:
-      password: lint-only-not-a-real-password
     message_broker:
       password: lint-only-not-a-real-password
     reana:
